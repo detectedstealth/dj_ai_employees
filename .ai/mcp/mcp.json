@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "djangomcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "django-ai-boost",
+        "--settings",
+        "core.settings"
+      ],
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings"
+      }
+    }
+  }
+}
