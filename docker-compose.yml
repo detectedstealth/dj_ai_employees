@@ -1,0 +1,162 @@
+services:
+  # ============================================================
+  # Application Network
+  # ============================================================
+  db:
+    image: postgres:17-alpine
+    container_name: dj_ai_employees_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dj_ai_employees}
+      POSTGRES_USER: ${DB_USER:-dj_ai_employees}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dj_ai_employees} -d ${DB_NAME:-dj_ai_employees}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dj_ai_employees_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DB_ENGINE=${DB_ENGINE:-django.db.backends.postgresql}
+      - DB_NAME=${DB_NAME:-dj_ai_employees}
+      - DB_USER=${DB_USER:-dj_ai_employees}
+      - DB_PASSWORD=${DB_PASSWORD:-changeme}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-dj_ai_employees}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=${OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED:-true}
+    command: >
+      gunicorn
+        --bind 0.0.0.0:8000
+        --workers 4
+        --timeout 120
+        --access-logfile -
+        core.wsgi:application
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - app
+      - observability
+
+  # ============================================================
+  # Observability Network
+  # ============================================================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: dj_ai_employees_otel
+    restart: unless-stopped
+    command:
+      - --config=/etc/otel/config.yaml
+    volumes:
+      - ./otel/config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Profiling
+      - "8889:8889"   # Prometheus metrics
+    networks:
+      - app
+      - observability
+
+  tempo:
+    image: grafana/tempo:3.0.0
+    container_name: dj_ai_employees_tempo
+    restart: unless-stopped
+    command: -config.file=/etc/tempo/tempo.yaml
+    volumes:
+      - ./otel/tempo.yaml:/etc/tempo/tempo.yaml:ro
+    tmpfs:
+      - /tmp:size=1G
+    ports:
+      - "3200:3200"   # Tempo HTTP
+    networks:
+      - observability
+
+  loki:
+    image: grafana/loki:3.7.0
+    container_name: dj_ai_employees_loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./otel/loki.yaml:/etc/loki/loki.yaml:ro
+    tmpfs:
+      - /tmp:size=1G
+    ports:
+      - "3100:3100"   # Loki HTTP
+    networks:
+      - observability
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dj_ai_employees_prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./otel/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - observability
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dj_ai_employees_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./otel/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./otel/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    networks:
+      - observability
+
+volumes:
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  app:
+    driver: bridge
+  observability:
+    driver: bridge

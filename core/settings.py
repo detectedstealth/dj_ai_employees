@@ -10,22 +10,50 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# OpenTelemetry Instrumentation
+# https://opentelemetry.io/docs/instrumentation/python/
+if os.getenv('OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED', 'false').lower() in ('true', '1', 'yes'):
+    try:
+        from opentelemetry import trace
+        from opentelemetry.instrumentation.django import DjangoInstrumentor
+        from opentelemetry.instrumentation.logging import LoggingInstrumentor
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+        provider = TracerProvider()
+        trace.set_tracer_provider(provider)
+
+        exporter = OTLPSpanExporter(
+            endpoint=os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'localhost:4317'),
+            insecure=True,
+        )
+        span_processor = BatchSpanProcessor(exporter)
+        provider.add_span_processor(span_processor)
+
+        DjangoInstrumentor().instrument()
+        LoggingInstrumentor().instrument()
+    except ImportError:
+        pass  # OpenTelemetry not installed; skip instrumentation
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ki(9ao=!vc0)d0xli4+9j9t_^yqgii1syd)tbilqncrk_2&a=d'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ki(9ao=!vc0)d0xli4+9j9t_^yqgii1syd)tbilqncrk_2&a=d')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',')]
 
 
 # Application definition
@@ -75,8 +103,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME') or str(BASE_DIR / 'db.sqlite3'),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', ''),
     }
 }
 

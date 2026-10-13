@@ -42,4 +42,8 @@ ENV/
 .DS_Store
 
 # uv
-uv.lock
+# uv.lock is intentionally tracked for reproducible Docker builds
+
+# Docker
+.dockerignore
+.env
