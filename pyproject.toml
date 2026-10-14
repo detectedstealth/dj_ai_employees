@@ -17,7 +17,8 @@ dependencies = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "core.settings"
 django_find_project = false
-testpaths = ["tests"]
+testpaths = ["tests", "orders"]
+python_files = ["test_*.py", "tests.py"]
 pythonpath = ["."]
 addopts = [
     "-p", "no:launch_testing",

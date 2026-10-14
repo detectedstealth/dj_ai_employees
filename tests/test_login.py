@@ -132,9 +132,9 @@ class LoginPagePostTests(TestCase):
     def test_login_redirects_to_admin_by_default(self) -> None:
         """Successful login should redirect to the default LOGIN_REDIRECT_URL."""
         response = post_login(self.client)
-        # Django's default redirect is /accounts/profile/ that returns 302
+        # Django's default redirect is /orders/ that returns 302
         self.assertEqual(response.status_code, 302)
-        self.assertIn('/accounts/profile/', response.url)
+        self.assertIn('/orders/', response.url)
 
     def test_login_with_next_parameter(self) -> None:
         """Login with the next parameter should redirect to the specified URL."""

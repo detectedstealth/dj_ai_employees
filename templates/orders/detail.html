@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Order #{{ order.id }} — Support Center{% endblock %}
+
+{% block content %}
+<div class="orders-page">
+    <div class="container">
+        <div class="orders-header">
+            <div class="orders-header-back">
+                <a href="{% url 'orders_list' %}" class="btn btn-secondary">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Back to Orders
+                </a>
+            </div>
+        </div>
+
+        <div class="order-detail-layout">
+            <div class="order-detail-main">
+                <div class="order-detail-card">
+                    <h2 class="order-detail-title">Order #{{ order.id }} — {{ order.product_name }}</h2>
+
+                    <table class="order-detail-table">
+                        <tbody>
+                            <tr>
+                                <th class="order-detail-field">Status</th>
+                                <td class="order-detail-value">
+                                    <span class="order-status-badge order-status-badge--{{ order.status }}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="order-detail-field">Amount</th>
+                                <td class="order-detail-value order-detail-value--amount">${{ order.amount }}</td>
+                            </tr>
+                            <tr>
+                                <th class="order-detail-field">Ordered on</th>
+                                <td class="order-detail-value">{{ order.created_at|date:"d M Y, g:i A" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="order-detail-field">Carrier</th>
+                                <td class="order-detail-value">{{ order.carrier|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="order-detail-field">Tracking Number</th>
+                                <td class="order-detail-value">{{ order.tracking_number|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <th class="order-detail-field">Delivery Address</th>
+                                <td class="order-detail-value">{{ order.delivery|default:"—" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if refunds %}
+                <div class="refund-section">
+                    <div class="refund-card">
+                        <h3 class="refund-section-title">Refund History</h3>
+                        {% for refund in refunds %}
+                        <div class="refund-item">
+                            <span class="refund-reason">{{ refund.reason }}</span>
+                            <span class="refund-status-badge refund-status-badge--{{ refund.status }}">
+                                {{ refund.get_status_display }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <aside class="order-detail-sidebar">
+                <div class="help-panel">
+                    <div class="help-panel-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="help-panel-title">Need help with this order?</h3>
+                    <p class="help-panel-text">Our AI support agent can help you with delivery issues, refunds, or any other concerns.</p>
+                    <button type="button" class="btn btn-help" disabled>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Get Help
+                    </button>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+{% endblock %}

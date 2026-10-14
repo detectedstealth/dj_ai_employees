@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Orders — Support Center{% endblock %}
+
+{% block content %}
+<div class="orders-page">
+    <div class="container">
+        <div class="orders-header">
+            <h2 class="orders-title">My Orders</h2>
+            <p class="orders-subtitle">View and track all your orders.</p>
+        </div>
+
+        {% if orders %}
+            {% for order in orders %}
+            <a href="{% url 'order_detail' order.id %}" class="order-card-link">
+                <div class="order-card">
+                    <div class="order-card-top">
+                        <span class="order-id">Order #{{ order.id }}</span>
+                        <span class="order-status-badge order-status-badge--{{ order.status }}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="order-product">{{ order.product_name }}</div>
+
+                    <div class="order-details">
+                        <div class="order-detail-item">
+                            <span class="order-detail-label">Amount</span>
+                            <span class="order-detail-value order-detail-value--amount">${{ order.amount }}</span>
+                        </div>
+
+                        {% if order.carrier %}
+                        <div class="order-detail-item">
+                            <span class="order-detail-label">Carrier</span>
+                            <span class="order-detail-value">{{ order.carrier }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if order.tracking_number %}
+                        <div class="order-detail-item">
+                            <span class="order-detail-label">Tracking Number</span>
+                            <span class="order-detail-value">{{ order.tracking_number }}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if order.delivery %}
+                        <div class="order-detail-item">
+                            <span class="order-detail-label">Delivery</span>
+                            <span class="order-detail-value">{{ order.delivery }}</span>
+                        </div>
+                        {% endif %}
+
+                        <div class="order-detail-item">
+                            <span class="order-detail-label">Created</span>
+                            <span class="order-detail-value">{{ order.created_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+
+            {% if orders.has_other_pages %}
+            <nav class="pagination" aria-label="Order pages">
+                {% if orders.has_previous %}
+                <a href="?page={{ orders.previous_page_number }}" class="pagination-btn" aria-label="Previous page">
+                    <svg class="pagination-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Previous
+                </a>
+                {% else %}
+                <span class="pagination-btn pagination-btn--disabled" aria-label="Previous page" aria-disabled="true">
+                    <svg class="pagination-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Previous
+                </span>
+                {% endif %}
+
+                {% for num in orders.paginator.page_range %}
+                    {% if num == orders.number %}
+                    <span class="pagination-btn pagination-btn--active" aria-current="page">{{ num }}</span>
+                    {% elif num > orders.number|add:"-3" and num < orders.number|add:"3" %}
+                    <a href="?page={{ num }}" class="pagination-btn">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if orders.has_next %}
+                <a href="?page={{ orders.next_page_number }}" class="pagination-btn" aria-label="Next page">
+                    Next
+                    <svg class="pagination-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </a>
+                {% else %}
+                <span class="pagination-btn pagination-btn--disabled" aria-label="Next page" aria-disabled="true">
+                    Next
+                    <svg class="pagination-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </span>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <div class="orders-empty">
+                <svg class="orders-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                <p class="orders-empty-title">No orders yet</p>
+                <p class="orders-empty-text">When you place an order, it will appear here.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
