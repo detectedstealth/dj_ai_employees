@@ -6,6 +6,7 @@ This project is a Django 6.1 application using Python 3.14+ and `uv` as the pack
 - **Python**: 3.14+
 - **Django**: 6.1+
 - **Package Manager**: `uv`
+- **Testing**: pytest with pytest-django
 - **Database**: SQLite3 (development)
 
 ## Commands
@@ -17,7 +18,18 @@ uv run python manage.py runserver
 
 ### Running Tests
 ```bash
-uv run python manage.py test
+uv run pytest
+```
+
+For verbose output:
+```bash
+uv run pytest -v
+```
+
+To run specific tests:
+```bash
+uv run pytest tests/test_login.py -v
+uv run pytest tests/test_login.py::LoginPageGetTests -v
 ```
 
 ### Adding Dependencies
@@ -68,9 +80,11 @@ dj_ai_employees/
 
 ### Testing
 - Write tests for models, views, and business logic
+- Use pytest with pytest-django for testing
 - Use Django's `TestCase` for database tests
 - Test edge cases and error conditions
 - Aim for high test coverage on critical paths
+- Pytest configuration is in `pyproject.toml` under `[tool.pytest.ini_options]`
 
 ## Security
 - Never commit secrets or sensitive data

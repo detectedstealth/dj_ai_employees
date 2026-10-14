@@ -13,3 +13,24 @@ dependencies = [
     "opentelemetry-instrumentation-logging>=0.48b0",
     "opentelemetry-exporter-otlp>=1.27.0",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "core.settings"
+django_find_project = false
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = [
+    "-p", "no:launch_testing",
+    "-p", "no:launch_ros",
+    "-p", "no:ament_lint",
+    "-p", "no:ament_copyright",
+    "-p", "no:ament_xmllint",
+    "-p", "no:ament_pep257",
+    "-p", "no:ament_flake8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-django>=4.14.0",
+]
