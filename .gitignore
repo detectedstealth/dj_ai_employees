@@ -47,3 +47,4 @@ ENV/
 # Docker
 .dockerignore
 .env
+/orders/fixtures/demo_data.json
