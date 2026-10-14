@@ -74,22 +74,189 @@
             </div>
 
             <aside class="order-detail-sidebar">
-                <div class="help-panel">
-                    <div class="help-panel-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
+                <div class="help-panel" id="helpPanel">
+                    <div class="help-panel-welcome" id="helpPanelWelcome">
+                        <div class="help-panel-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="help-panel-title">Need help with this order?</h3>
+                        <p class="help-panel-text">Our AI support agent can help you with delivery issues, refunds, or any other concerns.</p>
+                        <button type="button" class="btn btn-help" id="btnGetHelp">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            Get Help
+                        </button>
                     </div>
-                    <h3 class="help-panel-title">Need help with this order?</h3>
-                    <p class="help-panel-text">Our AI support agent can help you with delivery issues, refunds, or any other concerns.</p>
-                    <button type="button" class="btn btn-help" disabled>
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        Get Help
-                    </button>
+
+                    <div class="chat-window" id="chatWindow" hidden>
+                        <div class="chat-header">
+                            <div class="chat-header-agent">
+                                <div class="chat-header-avatar">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="chat-header-info">
+                                    <span class="chat-header-name">Support Agent</span>
+                                    <span class="chat-header-status">Online</span>
+                                </div>
+                            </div>
+                            <button type="button" class="chat-header-close" id="btnCloseChat" title="Close chat">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="chat-messages" id="chatMessages">
+                        </div>
+
+                        <div class="chat-input-area">
+                            <form id="chatForm" class="chat-form">
+                                <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." autocomplete="off" />
+                                <button type="submit" class="chat-send-btn" id="chatSendBtn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </aside>
+
+{% block extra_js %}
+<script>
+(function () {
+    const btnGetHelp = document.getElementById('btnGetHelp');
+    const btnCloseChat = document.getElementById('btnCloseChat');
+    const helpPanelWelcome = document.getElementById('helpPanelWelcome');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    const greeting = "Hello! I'm Support Agent. How can I help you with your order today?";
+
+    let isAgentTyping = false;
+
+    function createMessageBubble(text, sender) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'chat-message chat-message--' + sender;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        bubble.textContent = text;
+
+        wrapper.appendChild(bubble);
+        return wrapper;
+    }
+
+    function createTypingIndicator() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'chat-message chat-message--agent typing-indicator';
+        wrapper.id = 'typingIndicator';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble chat-bubble--typing';
+
+        for (let i = 0; i < 3; i++) {
+            const dot = document.createElement('span');
+            dot.className = 'typing-dot';
+            bubble.appendChild(dot);
+        }
+
+        wrapper.appendChild(bubble);
+        return wrapper;
+    }
+
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function addGreeting() {
+        const msg = createMessageBubble(greeting, 'agent');
+        chatMessages.appendChild(msg);
+        scrollToBottom();
+    }
+
+    function showTyping() {
+        isAgentTyping = true;
+        const indicator = createTypingIndicator();
+        chatMessages.appendChild(indicator);
+        scrollToBottom();
+    }
+
+    function hideTyping() {
+        isAgentTyping = false;
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+
+    function simulateAgentResponse(userText) {
+        showTyping();
+        const delay = 1000 + Math.random() * 1500;
+        setTimeout(function () {
+            hideTyping();
+            const responses = [
+                "Thank you for your message. Let me look into that for you.",
+                "I understand your concern. I'm checking the details of your order now.",
+                "I've received your request. Let me see what I can do to help.",
+                "Thanks for reaching out! I'll do my best to assist you with this.",
+                "I'm looking into this right away. Please give me a moment."
+            ];
+            const reply = responses[Math.floor(Math.random() * responses.length)];
+            const msg = createMessageBubble(reply, 'agent');
+            chatMessages.appendChild(msg);
+            scrollToBottom();
+            chatInput.disabled = false;
+            chatInput.focus();
+        }, delay);
+    }
+
+    function openChat() {
+        helpPanelWelcome.hidden = true;
+        chatWindow.hidden = false;
+        if (chatMessages.querySelectorAll('.chat-message').length === 0) {
+            addGreeting();
+        }
+        chatInput.focus();
+    }
+
+    function closeChat() {
+        chatWindow.hidden = true;
+        helpPanelWelcome.hidden = false;
+        chatMessages.innerHTML = '';
+        hideTyping();
+    }
+
+    btnGetHelp.addEventListener('click', openChat);
+    btnCloseChat.addEventListener('click', closeChat);
+
+    chatForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text || isAgentTyping) return;
+
+        const msg = createMessageBubble(text, 'user');
+        chatMessages.appendChild(msg);
+        scrollToBottom();
+
+        chatInput.value = '';
+        chatInput.disabled = true;
+
+        simulateAgentResponse(text);
+    });
+})();
+</script>
+{% endblock %}
         </div>
     </div>
 </div>
