@@ -68,7 +68,7 @@ INSTALLED_APPS = [
 
     # Third-party and local apps
     'orders',
-    'tests',
+    'support',
 ]
 
 MIDDLEWARE = [
