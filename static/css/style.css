@@ -533,7 +533,7 @@ body {
 /* --- Order Detail Layout --- */
 .order-detail-layout {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 380px;
     gap: 1.5rem;
     align-items: start;
 }
@@ -869,6 +869,8 @@ body {
     font-size: 0.875rem;
     line-height: 1.5;
     word-wrap: break-word;
+    text-align: left;
+    white-space: pre-wrap;
 }
 
 .chat-message--agent .chat-bubble {

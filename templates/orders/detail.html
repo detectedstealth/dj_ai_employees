@@ -142,8 +142,11 @@
     const chatInput = document.getElementById('chatInput');
 
     const greeting = "Hello! I'm Support Agent. How can I help you with your order today?";
+    const hasConversation = {% if conversation %}true{% else %}false{% endif %};
+    const previousMessages = {{ previous_messages|safe }};
 
     let isAgentTyping = false;
+    let chatInitialized = false;
 
     function createMessageBubble(text, sender) {
         const wrapper = document.createElement('div');
@@ -180,6 +183,7 @@
     }
 
     function addGreeting() {
+        if (chatMessages.querySelector('.chat-message--agent')) return;
         const msg = createMessageBubble(greeting, 'agent');
         chatMessages.appendChild(msg);
         scrollToBottom();
@@ -200,32 +204,62 @@
         }
     }
 
-    function simulateAgentResponse(userText) {
+    async function simulateAgentResponse(userText) {
         showTyping();
-        const delay = 1000 + Math.random() * 1500;
-        setTimeout(function () {
+        try {
+            const response = await fetch('/support/chat/{{ order.id }}/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ message: userText }),
+            });
             hideTyping();
-            const responses = [
-                "Thank you for your message. Let me look into that for you.",
-                "I understand your concern. I'm checking the details of your order now.",
-                "I've received your request. Let me see what I can do to help.",
-                "Thanks for reaching out! I'll do my best to assist you with this.",
-                "I'm looking into this right away. Please give me a moment."
-            ];
-            const reply = responses[Math.floor(Math.random() * responses.length)];
-            const msg = createMessageBubble(reply, 'agent');
-            chatMessages.appendChild(msg);
+            if (response.ok) {
+                const data = await response.json();
+                const reply = createMessageBubble(data.reply, 'agent');
+                chatMessages.appendChild(reply);
+                scrollToBottom();
+            } else {
+                console.error("Error occurred:", response.statusText);
+                const errorBubble = createMessageBubble('An error occurred while processing your message.', 'agent');
+                chatMessages.appendChild(errorBubble);
+                scrollToBottom();
+            }
+        } catch(error) {
+            hideTyping();
+            console.error("Error occurred:", error);
+            const errorBubble = createMessageBubble('An error occurred while processing your message.', 'agent');
+            chatMessages.appendChild(errorBubble);
+            scrollToBottom();
+        } finally {
             scrollToBottom();
             chatInput.disabled = false;
             chatInput.focus();
-        }, delay);
+        }
+        
+    }
+
+    function loadPreviousMessages() {
+        chatMessages.innerHTML = '';
+        if (!hasConversation || previousMessages.length === 0) {
+            addGreeting();
+            return;
+        }
+        previousMessages.forEach(function (msg) {
+            const bubble = createMessageBubble(msg.content, msg.role);
+            chatMessages.appendChild(bubble);
+        });
+        scrollToBottom();
     }
 
     function openChat() {
         helpPanelWelcome.hidden = true;
         chatWindow.hidden = false;
-        if (chatMessages.querySelectorAll('.chat-message').length === 0) {
-            addGreeting();
+        if (!chatInitialized) {
+            loadPreviousMessages();
+            chatInitialized = true;
         }
         chatInput.focus();
     }
@@ -234,16 +268,20 @@
         chatWindow.hidden = true;
         helpPanelWelcome.hidden = false;
         chatMessages.innerHTML = '';
+        chatInitialized = false;
         hideTyping();
     }
 
     btnGetHelp.addEventListener('click', openChat);
     btnCloseChat.addEventListener('click', closeChat);
 
-    chatForm.addEventListener('submit', function (e) {
+    chatForm.addEventListener('submit', async function (e) {
         e.preventDefault();
+        
         const text = chatInput.value.trim();
         if (!text || isAgentTyping) return;
+        
+        console.log("Message==>", text);
 
         const msg = createMessageBubble(text, 'user');
         chatMessages.appendChild(msg);
@@ -251,8 +289,10 @@
 
         chatInput.value = '';
         chatInput.disabled = true;
-
-        simulateAgentResponse(text);
+        
+        setTimeout(() => {
+            simulateAgentResponse(text);
+        }, 1000);
     });
 })();
 </script>

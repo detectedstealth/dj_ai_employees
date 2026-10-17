@@ -48,3 +48,5 @@ ENV/
 .dockerignore
 .env
 /orders/fixtures/demo_data.json
+/test_claude_api.py
+/test_gemini_api.py
