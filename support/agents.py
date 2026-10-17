@@ -4,12 +4,6 @@ from .gemini_client import Anthropic
 from .models import Conversation, Message, AgentLog
 from .tools import get_order_details, get_refund_history, check_delivery_status
 
-
-# Only using GEMINI FREE to test will swap to CLAUDE later
-client = Anthropic(api_key=settings.GEMINI_API_KEY)
-llm_model = settings.GEMINI_MODEL
-
-
 # SUPPORT SYSTEM PROMPT --> Maya's job description
 SUPPORT_SYSTEM_PROMPT = """
 You are Maya, a customer support agent at Support Center.
@@ -99,6 +93,10 @@ def execute_tool(tool_name, tool_input):
 
 # Agent Loop -> Agent loop that will execute the agent until task is done
 def run_support_agent(user_message, conversation_id, order_id, user_id):
+    # Only using GEMINI FREE to test will swap to CLAUDE later
+    client = Anthropic(api_key=settings.GEMINI_API_KEY)
+    llm_model = settings.GEMINI_MODEL
+
     conversation = Conversation.objects.get(id=conversation_id)
 
     conversation_messages = []
