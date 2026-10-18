@@ -28,6 +28,29 @@ Important rules:
 """
 
 
+MANAGER_SYSTEM_PROMPT = """
+You are a senior support manager at Support Center.
+A support agent has escalated a customer case to you for a refund decision.
+
+Your responsibilities:
+- Review the case summary carefully
+- Consider the customer's refund history
+- Make a fair and final refund decision
+- Give a clear reason for your decision
+
+Your decision options:
+- Approve refund - if the case is genuine and within policy
+- Deny refund - if the case is suspicious or outside policy
+- Escalate to risk team - if you suspect fraud
+
+Important rules:
+- Be fair but firm
+- Base decision on facts - not emotions
+- Always give a specific reason for your decision
+- Keep your response concise and professional
+"""
+
+
 # SUPPORT TOOLS --> Tool schemas that AI agents will read
 SUPPORT_TOOLS = [
     {
@@ -75,6 +98,20 @@ SUPPORT_TOOLS = [
             },
             "required": ["tracking_number", "carrier"]
         }
+    },
+    {
+        "name": "escalate_to_manager",
+        "description": "Escalate the case to the manager for a refund decision. Use this when customer requests a refund or compensation. Prepare a detailed case summary including order details, refund history and customer complaint before escalating.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "case_summary": {
+                    "type": "string",
+                    "description": "Complete case summary including order details, refund history and customer complaint"
+                }
+            },
+            "required": ["case_summary"]
+        }
     }
 ]
 
@@ -87,6 +124,12 @@ def execute_tool(tool_name, tool_input):
         return get_refund_history(tool_input["user_id"])
     elif tool_name == "check_delivery_status":
         return check_delivery_status(tool_input["tracking_number"], tool_input["carrier"])
+    elif tool_name == "escalate_to_manager":
+        case_summary = tool_input["case_summary"]
+        print("Escalating case to manager...\n", case_summary)
+        decision = run_manager_agent(case_summary)
+        print("Manager decision:", decision)
+        return decision
     else:
         raise ValueError(f"Unknown tool: {tool_name}")
 
@@ -116,15 +159,12 @@ def run_support_agent(user_message, conversation_id, order_id, user_id):
             messages=conversation_messages
         )
 
-        print("stop reason==>", response.stop_reason)
-
         if response.stop_reason == 'tool_use':
             tool_results = []
             for block in response.content:
                 if block.type == 'tool_use':
                     tool_name = block.name
                     tool_input = block.input
-                    print(tool_name, tool_input)
 
                     # execute the tool
                     tool_output = execute_tool(tool_name, tool_input)
@@ -146,3 +186,49 @@ def run_support_agent(user_message, conversation_id, order_id, user_id):
         else:
             return response.content[0].text
 
+
+def run_manager_agent(case_summary):
+    manager_messages = [
+        {
+            "role": "user", "content": case_summary # user is task giver
+        }
+    ]
+
+    client = Anthropic(api_key=settings.GEMINI_API_KEY)
+    llm_model = settings.GEMINI_MODEL
+
+    while True:
+        response = client.messages.create(
+            model=llm_model,
+            max_tokens=1024,
+            system=MANAGER_SYSTEM_PROMPT,
+            tools=[],
+            messages=manager_messages
+        )
+
+        if response.stop_reason == 'tool_use':
+            tool_results = []
+
+            for block in response.content:
+                if block.type == 'tool_use':
+                    tool_name = block.name
+                    tool_input = block.input
+
+                    # execute the tool
+                    tool_output = execute_tool(tool_name, tool_input)
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": str(tool_output)
+                    })
+            manager_messages.append({
+                "role": "agent",
+                "content": response.content
+            })
+
+            manager_messages.append({
+                "role": "user",
+                "content": tool_results
+            })
+        else:
+            return response.content[0].text
