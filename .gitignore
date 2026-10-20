@@ -47,6 +47,6 @@ ENV/
 # Docker
 .dockerignore
 .env
-/orders/fixtures/demo_data.json
+/orders/fixtures/*
 /test_claude_api.py
 /test_gemini_api.py
